@@ -19,13 +19,15 @@
 (defonce remote #_(fws/fulcro-websocket-remote {:auto-retry?        true
                                               :request-timeout-ms 10000}) (http/fulcro-http-remote {}))
 
-(defonce app (stx/with-synchronous-transactions
-               (app/fulcro-app {:remotes          {:remote remote}
-                                :client-did-mount (fn [app]
-                                                    (dr/initialize! app)
-                                                    (df/load! app [:list/id 1] ui/TodoList)
-                                                    (log/merge-config! {:output-fn prefix-output-fn
-                                                                        :appenders {:console (console-appender)}}))})))
+(defonce app (app/fulcro-app {:remotes          {:remote remote}
+                              :client-did-mount (fn [app]
+                                                  (dr/initialize! app)
+                                                  (df/load! app [:list/id 1] ui/TodoList)
+                                                  (df/load! app [:list/id 2] ui/TodoList)
+                                                  (df/load! app [:list/id 3] ui/TodoList)
+                                                  (df/load! app [:list/id 4] ui/TodoList)
+                                                  (log/merge-config! {:output-fn prefix-output-fn
+                                                                      :appenders {:console (console-appender)}}))}))
 
 (defn ^:export start []
   (app/mount! app ui/Root "app")
