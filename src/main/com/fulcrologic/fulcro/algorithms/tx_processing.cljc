@@ -114,7 +114,6 @@
                                                 (when update-handler
                                                   (update-handler combined-result))))
                            ::result-handler (fn [{:keys [body] :as combined-result}]
-                                              (log/spy :info combined-result)
                                               (doseq [{::keys [ast result-handler]} to-send]
                                                 (let [new-body (if (map? body)
                                                                  (select-keys body (top-keys ast))
@@ -140,9 +139,9 @@
         (some
           (fn [{::keys [ast options]}]
             (or
-              (log/spy :info (::abort-id options))
-              (log/spy :info (and (map? ast) (= :call (:type ast))))
-              (log/spy :info (some #(= :call (:type %)) (:children ast)))))
+              (contains? options ::abort-id)
+              (and (map? ast) (= :call (:type ast)))
+              (boolean (some #(= :call (:type %)) (:children ast)))))
           to-send)))))
 
 (defn batch-sends
@@ -150,7 +149,6 @@
   [:com.fulcrologic.fulcro.application/app :com.fulcrologic.fulcro.application/remote-name ::send-queue => (s/keys :opt [::send-node] :req [::send-queue])]
   (let [{:keys [batch remainder]} (loop [result {:batch []}
                                          queue  send-queue]
-                                    (log/spy :info [result queue])
                                     (let [leader (first queue)
                                           [to-send remainder] (split-with #(= (::id leader) (::id %)) queue)]
                                       (if (batchable? to-send)
@@ -180,18 +178,17 @@
                                                (recur (first more-batch) (next more-batch)
                                                  (first more-result) (next more-result)))))
                         ::result-handler (fn [{:keys [body] :as batch-result}]
-                                           (log/spy :info batch-result)
-                                           (loop [{::keys [result-handler]} (log/spy :info (first batch))
+                                           (loop [{::keys [result-handler]} (first batch)
                                                   more-batch  (next batch)
                                                   result      (first body)
                                                   more-result (next body)]
-                                             (result-handler (log/spy :info (assoc batch-result :body result)))
+                                             (result-handler (assoc batch-result :body result))
                                              (when (and (seq more-batch) (seq more-result))
                                                (recur (first more-batch) (next more-batch)
                                                  (first more-result) (next more-result))))
                                            (remove-send! app remote-name batch-node-id batch-node-idx))
                         ::active?        true}]
-    (log/info "Batched:" (count batch))
+    (when (> (count batch) 1) (log/debug "Batched:" (count batch)))
     {::send-node  batch-node
      ::send-queue (into [batch-node] remainder)}))
 

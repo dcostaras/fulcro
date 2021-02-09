@@ -250,7 +250,6 @@
   [fn? fn? fn? fn? => any?]
   (fn [evt]
     (let [{:keys [error middleware-exception] :as r} (get-response-fn)]
-      (log/spy :info "Response from Mw" r)
       (if (= error :middleware-failure)
         (do
           (log/error "Client middleware threw an exception" middleware-exception)
